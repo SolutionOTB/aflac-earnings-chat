@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aflac Earnings Assistant</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 16px 24px;
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header p { font-size: 13px; color: #666; margin-top: 4px; }
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .msg {
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .msg.user {
+    background: #2563eb;
+    color: white;
+    margin-left: 80px;
+  }
+  .msg.assistant {
+    background: white;
+    border: 1px solid #e0e0e0;
+    margin-right: 80px;
+  }
+  .msg.system {
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 13px;
+    text-align: center;
+  }
+  .msg.assistant h1, .msg.assistant h2, .msg.assistant h3 {
+    margin: 12px 0 8px 0;
+    font-size: 16px;
+  }
+  .msg.assistant p { margin-bottom: 12px; }
+  .msg.assistant p:last-child { margin-bottom: 0; }
+  .msg.assistant ul, .msg.assistant ol {
+    margin: 8px 0 12px 24px;
+  }
+  .msg.assistant li { margin-bottom: 4px; }
+  .msg.assistant code {
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+  .msg.assistant blockquote {
+    border-left: 3px solid #d1d5db;
+    padding-left: 12px;
+    margin: 8px 0;
+    color: #4b5563;
+  }
+  footer {
+    border-top: 1px solid #e0e0e0;
+    background: white;
+    padding: 16px 24px;
+  }
+  .input-row {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    gap: 12px;
+  }
+  #input {
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: none;
+    min-height: 48px;
+    max-height: 200px;
+  }
+  #input:focus { outline: 2px solid #2563eb; border-color: transparent; }
+  #send {
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0 24px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  #send:hover { background: #1d4ed8; }
+  #send:disabled { background: #9ca3af; cursor: not-allowed; }
+  .loading { color: #666; font-style: italic; }
+  .error { color: #dc2626; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Aflac Earnings Assistant</h1>
+    <p>Ask about anything in the 2024–2026 earnings calls</p>
+  </header>
+  <main id="chat">
+    <div class="msg system">Loading transcripts and primer...</div>
+  </main>
+  <footer>
+    <div class="input-row">
+      <textarea id="input" placeholder="Ask about Aflac earnings..." disabled></textarea>
+      <button id="send" disabled>Send</button>
+    </div>
+  </footer>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+// ============================================================
+// CONFIGURATION
+// ============================================================
+const WORKER_URL = "https://aflac-chat-proxy.chris-c33.workers.dev";
+const SHARED_SECRET = "aflac-chat-7Kx9pQmR2vLnB4";
+// ============================================================
+
+const SYSTEM_INSTRUCTIONS = `You are an assistant that explains Aflac Incorporated earnings calls to a smart, non-specialist reader. Imagine your user took a finance class in college and reads business news, but isn't a sell-side analyst, an actuary, or a CFO. They understand basics like revenue, margins, and EPS, but they need help with insurance-specific terms (LDTI, ESR, benefit ratio, lapse-and-reissue, third sector) and with how to interpret what management is actually saying versus what the words literally mean.
+
+Your job is to make earnings calls comprehensible and useful to that reader.
+
+# RESPONSE RULES
+
+LENGTH: Keep responses under 300 words by default. Use minimal headers and short bullet lists. The user can ask for more depth if needed.
+
+REGISTER: Match Aflac management's actual register when describing the business. Their baseline adjectives are "solid" and "strong." "Excellent" is rare and meaningful when used. Do not characterize Aflac businesses with adjectives stronger than what the cited speaker used in that quarter. If Max called something "solid," do not call it "exceptional" or "best-in-class."
+
+EXPLAIN JARGON, DON'T HIDE IT: When a technical term comes up (LDTI, ESR, USP, benefit ratio, persistency, lapse-and-reissue, net premium ratio, variable investment income, third sector, first sector, RBC, DAC, DPL), define it briefly the first time it appears in your answer. Don't dumb the concept down — your reader can handle real definitions — just don't assume familiarity.
+
+INTERPRETATION OVER REGURGITATION: A good answer doesn't just quote what management said. It explains what management meant, what the underlying numbers signal, and what context matters. The reader could read the transcript themselves; your value is helping them understand it.
+
+CITATIONS: When making factual claims about company performance, quotes, or numbers, draw from the EARNINGS CALL TRANSCRIPTS and cite by quarter, e.g. [Q3 2025 call]. The CONTEXT PRIMER below is background only — label it as "context" rather than presenting it as a direct quote.
+
+GROUNDING: If the transcripts don't directly support a specific claim, say so explicitly. Do not fabricate quotes or numbers. Do not extrapolate beyond what's in the source material. Direct quotes must be reproduced verbatim from the transcript — if you're not sure, paraphrase instead and make clear it's a paraphrase.
+
+ANSWER STRUCTURE: For most questions, give:
+1. A short plain-English answer to what was said or what happened
+2. What it actually means in context (the interpretation layer)
+3. Why it matters or what to watch — only if the reader would benefit from it
+
+Don't force this structure when a simpler direct answer is better.`;
+
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const send = document.getElementById("send");
+
+let systemPrompt = "";
+const history = [];
+
+async function loadContext() {
+  try {
+    const [primerRes, transcriptsRes] = await Promise.all([
+      fetch("primer.md"),
+      fetch("transcripts.md")
+    ]);
+    if (!primerRes.ok || !transcriptsRes.ok) throw new Error("Failed to load context files");
+    const primer = await primerRes.text();
+    const transcripts = await transcriptsRes.text();
+    systemPrompt = `${SYSTEM_INSTRUCTIONS}
+
+# CONTEXT PRIMER
+
+${primer}
+
+# EARNINGS CALL TRANSCRIPTS
+
+${transcripts}`;
+    chat.innerHTML = `<div class="msg system">Ready. Ask about Aflac earnings calls from 2024–2026.</div>`;
+    input.disabled = false;
+    send.disabled = false;
+    input.focus();
+  } catch (err) {
+    chat.innerHTML = `<div class="msg error">Failed to load context: ${err.message}</div>`;
+  }
+}
+
+function addMessage(role, content) {
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+  if (role === "assistant") {
+    div.innerHTML = marked.parse(content);
+  } else {
+    div.textContent = content;
+  }
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+async function sendMessage() {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  input.disabled = true;
+  send.disabled = true;
+
+  addMessage("user", text);
+  history.push({ role: "user", content: text });
+
+  const loadingDiv = addMessage("assistant", "_Thinking..._");
+  loadingDiv.classList.add("loading");
+
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shared-Secret": SHARED_SECRET
+      },
+      body: JSON.stringify({
+        system: systemPrompt,
+        messages: history
+      })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText}`);
+    }
+    const data = await res.json();
+    const reply = data.content[0].text;
+    history.push({ role: "assistant", content: reply });
+    loadingDiv.classList.remove("loading");
+    loadingDiv.innerHTML = marked.parse(reply);
+  } catch (err) {
+    loadingDiv.classList.remove("loading");
+    loadingDiv.classList.add("error");
+    loadingDiv.textContent = `Error: ${err.message}`;
+    history.pop();
+  } finally {
+    input.disabled = false;
+    send.disabled = false;
+    input.focus();
+  }
+}
+
+send.addEventListener("click", sendMessage);
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+loadContext();
+</script>
+</body>
+</html>
