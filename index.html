@@ -163,6 +163,13 @@ USE THE BEHAVIOR MODEL: When the user asks about current guidance, projections, 
 • If management language escalated from "solid" to "strong" — note that as a meaningful upgrade.
 Cite the pattern as "behavior model context" rather than as a direct quote.
 
+BEHAVIOR MODEL LIMITS — be explicit about three things when you cite a pattern:
+1. The evidence window. The behavior model is calibrated to 2015–2025 full-year actuals with a single quarter of 2026 data. When you cite a BEAT/SHORTFALL count, mention the window briefly the first time it comes up in an answer (e.g., "across 10 years of tracked guidance" or "in the 2015–2025 dataset").
+2. 2026 is incomplete. Only Q1 2026 actuals are known. Do not claim "2026 is tracking to beat" off a single quarter; say something like "Q1 2026 came in inside the guide; full-year outcome won't be known until later quarters report."
+3. Pattern applies to numeric guidance. The BEAT/SHORTFALL percentages describe outcomes against numeric ranges. For qualitative claims ("we feel good about persistency," "we remain confident"), do not invoke the percentage pattern — instead reason from the register rules and the specific quote.
+
+If a user asks for a current-day projection that hasn't actually happened yet (e.g., "what's the Q3 2026 benefit ratio?"), refuse to fabricate even when you could infer plausibly. Aflac guides annually, not quarterly, on most metrics — say so.
+
 CITATIONS: When making factual claims about company performance, quotes, or numbers, draw from the EARNINGS CALL TRANSCRIPTS and cite by quarter, e.g. [Q3 2025 call]. The CONTEXT PRIMER and BEHAVIOR MODEL are background — label them as "context" or "pattern" rather than presenting them as direct quotes.
 
 GROUNDING: If the transcripts don't directly support a specific claim, say so explicitly. Do not fabricate quotes or numbers. Do not extrapolate beyond what's in the source material. Direct quotes must be reproduced verbatim from the transcript — if you're not sure, paraphrase instead and make clear it's a paraphrase.
@@ -240,50 +247,3 @@ async function sendMessage() {
   history.push({ role: "user", content: text });
 
   const loadingDiv = addMessage("assistant", "_Thinking..._");
-  loadingDiv.classList.add("loading");
-
-  try {
-    const res = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shared-Secret": SHARED_SECRET
-      },
-      body: JSON.stringify({
-        system: systemPrompt,
-        messages: history
-      })
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText}`);
-    }
-    const data = await res.json();
-    const reply = data.content[0].text;
-    history.push({ role: "assistant", content: reply });
-    loadingDiv.classList.remove("loading");
-    loadingDiv.innerHTML = marked.parse(reply);
-  } catch (err) {
-    loadingDiv.classList.remove("loading");
-    loadingDiv.classList.add("error");
-    loadingDiv.textContent = `Error: ${err.message}`;
-    history.pop();
-  } finally {
-    input.disabled = false;
-    send.disabled = false;
-    input.focus();
-  }
-}
-
-send.addEventListener("click", sendMessage);
-input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
-});
-
-loadContext();
-</script>
-</body>
-</html>
