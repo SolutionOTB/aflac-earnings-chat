@@ -1,6 +1,14 @@
 # Aflac Behavior Model — Distilled from 10 Years of Guidance vs. Actuals
 
-This file documents the systematic patterns in how Aflac management projects, guides, and ultimately delivers — derived from 589 forward-looking statements across 22 source documents (FAB books 2015-2024, 10-Ks 2020-2025, annual reports 2015-2019, and earnings transcripts Q1 2024 - Q1 2026), with 183 of those statements scored against actual outcomes.
+**Analysis as of: 2026-05-14**
+**Evidence window:** 2015 – Q1 2026
+**Sources scored:** 22 documents — FAB books 2015-2024, 10-Ks 2020-2025, annual reports 2015-2019, earnings transcripts Q1 2024 – Q1 2026
+**Sample:** 589 forward-looking statements extracted; 183 of those have clean numeric guidance scored against actual outcomes
+
+> **Important currency notes:**
+> - The hit/beat/shortfall figures below cover full-year actuals through 2025. 2026 is in-progress — only Q1 2026 results are known as of this analysis. Statements about "2026 tracking" reflect a single quarter, not a verified full-year outcome.
+> - The BEAT/SHORTFALL pattern is calibrated to **numeric guidance**. Qualitative claims like "we feel good about persistency" are present in the master ledger but cannot be scored against numeric actuals — apply judgment, not the percentage pattern, when interpreting qualitative statements.
+> - Pre-LDTI (2015-2022) and post-LDTI (2023+) numbers are not always directly comparable. Where the pattern below cites BEAT/SHORTFALL counts, both eras are pooled because the *behavior* (sandbagging on margins, missing on growth) is consistent across both — but specific numeric values should not be transposed across the LDTI break without checking.
 
 Use this as context when interpreting Aflac management commentary. When the user asks "what does it mean when Max says X?" or "is this guidance conservative?" — the patterns below are the answer.
 
